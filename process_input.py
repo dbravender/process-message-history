@@ -1,22 +1,25 @@
 from multiprocessing import Pool, cpu_count
-from collections import defaultdict
+from glob import iglob
+import numpy as np
 import ujson as json
 
 POOL_SIZE = cpu_count() / 2
-entries = defaultdict(lambda: [])
 
 
-def process_site(site_id):
+def process_site(work_path):
     """Returns the string used in reports:
        '124,messages=2,emails=1,operators=4,visitors=1'
     """
+    site_id = work_path[5:]
     online_operators = set()
     seen_operators = set()
     seen_visitors = set()
     seen_messages = set()
     sent_messages = 0
     sent_emails = 0
-    for timestamp, _id, is_message, _from, online in sorted(entries[site_id]):
+    entries = np.genfromtxt(work_path, delimiter=',', dtype=None)
+    entries.sort()
+    for timestamp, _id, is_message, _from, online in entries:
         if _id in seen_messages:
             continue
         seen_messages.add(_id)
@@ -38,21 +41,18 @@ def process_site(site_id):
 
 
 if __name__ == '__main__':
-    site_ids = set()
-    for line in open('big_input').readlines():
+    pool = Pool(POOL_SIZE)
+    for line in open('big_input'):
         entry = json.loads(line)
-        site_id = str(entry['site_id'])
-        entries[site_id].append((
+        is_message = entry['type'] == 'message' and 1 or 0
+        csv_line = '{},{},{},{},{}\n'.format(
             entry['timestamp'],
             entry['id'],
-            entry['type'] == 'message',
+            is_message,
             entry['from'],
-            entry.get('data', {}).get('status', '') == 'online',
-        ))
-        site_ids.add(site_id)
+            entry.get('data', {}).get('status', '') == 'online' and 1 or 0
+        )
+        open('work/{}'.format(entry['site_id']), 'a').write(csv_line)
 
-    # fork here so the child processes each have a copy of the entries
-    # dictionary
-    p = Pool(POOL_SIZE)
-    for response in p.map(process_site, sorted(site_ids)):
+    for response in pool.imap_unordered(process_site, iglob('work/*')):
         print response

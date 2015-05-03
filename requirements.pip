@@ -1,0 +1,4 @@
+argparse==1.2.1
+numpy==1.9.2
+ujson==1.33
+wsgiref==0.1.2
