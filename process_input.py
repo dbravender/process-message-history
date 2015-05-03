@@ -6,7 +6,7 @@ from shutil import rmtree
 import sys
 import ujson as json
 
-POOL_SIZE = cpu_count() / 2
+POOL_SIZE = cpu_count()
 
 
 def process_site(work_path):
