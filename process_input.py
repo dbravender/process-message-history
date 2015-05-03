@@ -45,7 +45,10 @@ def process_site(work_path):
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    rmtree('work')
+    try:
+        rmtree('work')
+    except OSError:
+        pass
     os.mkdir('work')
     pool = Pool(POOL_SIZE)
     for line in sys.stdin:
