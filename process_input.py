@@ -1,6 +1,9 @@
 from multiprocessing import Pool, cpu_count
-from glob import iglob
+from glob import glob
 import numpy as np
+import os
+from shutil import rmtree
+import sys
 import ujson as json
 
 POOL_SIZE = cpu_count() / 2
@@ -41,8 +44,11 @@ def process_site(work_path):
 
 
 if __name__ == '__main__':
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    rmtree('work')
+    os.mkdir('work')
     pool = Pool(POOL_SIZE)
-    for line in open('big_input'):
+    for line in sys.stdin:
         entry = json.loads(line)
         is_message = entry['type'] == 'message' and 1 or 0
         csv_line = '{},{},{},{},{}\n'.format(
@@ -54,5 +60,5 @@ if __name__ == '__main__':
         )
         open('work/{}'.format(entry['site_id']), 'a').write(csv_line)
 
-    for response in pool.imap_unordered(process_site, iglob('work/*')):
+    for response in pool.imap(process_site, sorted(glob('work/*'))):
         print response
